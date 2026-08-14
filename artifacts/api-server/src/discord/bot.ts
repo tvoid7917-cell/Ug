@@ -13,6 +13,7 @@ import {
   handleTicketClaim,
   handleTicketClose,
   handleTicketModal,
+  handleTicketRating,
 } from "./tickets";
 import { getConfig } from "./config";
 import { logger } from "../lib/logger";
@@ -28,17 +29,35 @@ if (!token) {
 const discordToken: string = token;
 
 export const discordClient = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+  ],
 });
 
 async function registerCommands() {
   const config = getConfig();
   const rest = new REST({ version: "10" }).setToken(discordToken);
-  const route = config.commandGuildId
-    ? Routes.applicationGuildCommands(discordClient.user!.id, config.commandGuildId)
-    : Routes.applicationCommands(discordClient.user!.id);
+  if (config.commandGuildId) {
+    await rest.put(
+      Routes.applicationGuildCommands(
+        discordClient.user!.id,
+        config.commandGuildId,
+      ),
+      { body: commands },
+    );
 
-  await rest.put(route, { body: commands });
+    // Remove the previous global copies so the server only shows /dm-all once.
+    await rest.put(Routes.applicationCommands(discordClient.user!.id), {
+      body: [],
+    });
+  } else {
+    await rest.put(Routes.applicationCommands(discordClient.user!.id), {
+      body: commands,
+    });
+  }
+
   logger.info(
     {
       scope: config.commandGuildId ? "guild" : "global",
@@ -67,6 +86,8 @@ async function handleInteraction(interaction: Interaction) {
       await handleTicketClaim(interaction);
     } else if (interaction.customId === "ticket_close") {
       await handleTicketClose(interaction);
+    } else if (interaction.customId.startsWith("ticket_rating:")) {
+      await handleTicketRating(interaction);
     }
   }
 }

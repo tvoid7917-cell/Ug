@@ -191,6 +191,7 @@ export const supportDepartments = [
 export const getConfig = () => ({
   brandName: process.env.BRAND_NAME?.trim() || "United Knights",
   brandIconUrl: process.env.BRAND_ICON_URL?.trim() || undefined,
+  brandUrl: process.env.BRAND_URL?.trim() || undefined,
   ticketCategoryId: process.env.TICKET_CATEGORY_ID?.trim() || undefined,
   staffRoleId: process.env.STAFF_ROLE_ID?.trim() || undefined,
   transcriptChannelId: process.env.TRANSCRIPT_CHANNEL_ID?.trim() || undefined,

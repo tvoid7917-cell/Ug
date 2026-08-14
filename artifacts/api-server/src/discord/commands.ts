@@ -1,99 +1,65 @@
 import {
-  ChannelType,
   PermissionFlagsBits,
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
-  type NewsChannel,
-  type TextChannel,
 } from "discord.js";
-import { buildTicketPanel } from "./tickets";
 
 export const commands = [
   new SlashCommandBuilder()
-    .setName("ticket-panel")
-    .setDescription("Post the professional ticket panel in this channel.")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild.toString()),
-  new SlashCommandBuilder()
-    .setName("send-message")
-    .setDescription("Send a message, optional image, and optional @everyone mention.")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages.toString())
-    .addChannelOption((option) =>
-      option
-        .setName("channel")
-        .setDescription("The channel where the message should be sent.")
-        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-        .setRequired(true),
-    )
+    .setName("dm-all")
+    .setDescription("Send a professional direct message to every non-bot member.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild.toString())
     .addStringOption((option) =>
       option
         .setName("message")
-        .setDescription("The message to send.")
+        .setDescription("The professional message to send to members.")
         .setMaxLength(2000)
         .setRequired(true),
     )
-    .addBooleanOption((option) =>
-      option
-        .setName("everyone")
-        .setDescription("Mention @everyone in the message.")
-        .setRequired(false),
-    )
-    .addAttachmentOption((option) =>
-      option
-        .setName("image")
-        .setDescription("Optional image attachment.")
-        .setRequired(false),
-    ),
 ].map((command) => command.toJSON());
+
+const wait = (milliseconds: number) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export async function handleChatInputCommand(
   interaction: ChatInputCommandInteraction,
 ) {
-  if (interaction.commandName === "ticket-panel") {
-    if (!interaction.channel || !interaction.channel.isTextBased()) {
-      await interaction.reply({
-        content: "This command must be used in a text channel.",
-        ephemeral: true,
-      });
-      return;
-    }
+  if (interaction.commandName !== "dm-all") return;
 
-    await (interaction.channel as TextChannel | NewsChannel).send(
-      buildTicketPanel(),
-    );
+  if (!interaction.guild) {
     await interaction.reply({
-      content: "Ticket panel posted.",
+      content: "This command can only be used inside your server.",
       ephemeral: true,
     });
     return;
   }
 
-  if (interaction.commandName === "send-message") {
-    const channel = interaction.options.getChannel("channel", true);
-    const message = interaction.options.getString("message", true);
-    const everyone = interaction.options.getBoolean("everyone") || false;
-    const image = interaction.options.getAttachment("image");
+  const message = interaction.options.getString("message", true).trim();
+  await interaction.deferReply({ ephemeral: true });
 
-    const target = interaction.guild?.channels.cache.get(channel.id);
-    if (
-      !target ||
-      (target.type !== ChannelType.GuildText &&
-        target.type !== ChannelType.GuildAnnouncement)
-    ) {
-      await interaction.reply({
-        content: "Please choose a server text or announcement channel.",
-        ephemeral: true,
+  const members = await interaction.guild.members.fetch();
+  const recipients = members.filter(
+    (member) => !member.user.bot && !member.user.system,
+  );
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const member of recipients.values()) {
+    try {
+      await member.send({
+        content: message,
+        allowedMentions: { parse: [] },
       });
-      return;
+      sent += 1;
+    } catch {
+      failed += 1;
     }
 
-    await target.send({
-      content: everyone ? `@everyone ${message}` : message,
-      allowedMentions: everyone ? { parse: ["everyone"] } : { parse: [] },
-      files: image ? [{ attachment: image.url, name: image.name }] : [],
-    });
-    await interaction.reply({
-      content: `Message sent to <#${target.id}>${everyone ? " with @everyone." : "."}`,
-      ephemeral: true,
-    });
+    await wait(250);
   }
+
+  await interaction.editReply(
+    `Professional DM complete. Sent: **${sent}**. Could not deliver: **${failed}**.`,
+  );
 }

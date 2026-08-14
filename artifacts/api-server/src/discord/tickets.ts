@@ -189,31 +189,53 @@ function buildTicketEmbed(
   interaction: ModalSubmitInteraction,
   formData: { label: string; value: string }[],
   supportDepartment?: string,
+  reference?: string,
 ) {
   const config = getConfig();
   const definition = ticketCategories[category];
+  const avatarUrl = interaction.user.displayAvatarURL({
+    extension: "png",
+    size: 256,
+  });
+  const ticketReference =
+    reference || `${definition.label.toUpperCase()}-${interaction.id.slice(-4)}`;
   const embed = new EmbedBuilder()
     .setColor(definition.color)
+    .setAuthor({
+      name: config.brandName,
+      ...(config.brandIconUrl ? { iconURL: config.brandIconUrl } : {}),
+    })
     .setTitle(`${definition.emoji} ${definition.label} ticket`)
     .setDescription(
-      `Welcome <@${interaction.user.id}>. A member of the team will be with you shortly.`,
+      "Your ticket is open and waiting for staff. Keep any extra information in this channel so everything stays together.",
     )
     .addFields(
-      { name: "Requester", value: `<@${interaction.user.id}>`, inline: true },
-      { name: "Category", value: definition.label, inline: true },
+      { name: "Reference", value: `\`${ticketReference}\``, inline: false },
+      { name: "Customer", value: `<@${interaction.user.id}>`, inline: true },
+      { name: "Type", value: definition.label, inline: true },
       ...(supportDepartment
         ? [{ name: "Department", value: supportDepartment, inline: true }]
         : []),
+      { name: "Status", value: "🟡 Waiting for Staff", inline: true },
+      { name: "Handler", value: "Awaiting Claim", inline: true },
+      {
+        name: "Created",
+        value: `<t:${Math.floor(interaction.createdTimestamp / 1000)}:F>`,
+        inline: false,
+      },
       ...formData.map((field) => ({
         name: field.label,
         value: field.value.slice(0, 1024),
         inline: false,
       })),
     )
-    .setFooter({ text: "Keep all updates in this ticket • Use Close when resolved" })
+    .setThumbnail(avatarUrl)
+    .setFooter({
+      text: `${config.brandName} • Keep all updates in this ticket`,
+      ...(config.brandIconUrl ? { iconURL: config.brandIconUrl } : {}),
+    })
     .setTimestamp();
 
-  if (config.brandIconUrl) embed.setThumbnail(config.brandIconUrl);
   return embed;
 }
 
@@ -336,10 +358,17 @@ export async function handleTicketModal(
   });
 
   const formData = formatFormData(category, interaction);
+  const reference = `${ticketCategories[category].label.toUpperCase()}-${channel.id.slice(-4)}`;
   await channel.send({
     content: `<@${interaction.user.id}>${config.staffRoleId ? ` <@&${config.staffRoleId}>` : ""}`,
     embeds: [
-      buildTicketEmbed(category, interaction, formData, supportDepartment !== "none" ? supportDepartment : undefined),
+      buildTicketEmbed(
+        category,
+        interaction,
+        formData,
+        supportDepartment !== "none" ? supportDepartment : undefined,
+        reference,
+      ),
     ],
     components: [buildTicketControls()],
   });
@@ -422,6 +451,102 @@ function transcriptText(
   return lines.join("\n").slice(0, 7_500_000);
 }
 
+function formatDuration(milliseconds: number) {
+  const minutes = Math.max(1, Math.round(milliseconds / 60_000));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function buildTranscriptEmbed(
+  interaction: ButtonInteraction,
+  requester: import("discord.js").User,
+  ticket: { category: TicketCategory | null },
+) {
+  const config = getConfig();
+  const definition = ticket.category
+    ? ticketCategories[ticket.category]
+    : ticketCategories.support;
+  const reference = `${definition.label.toUpperCase()}-${interaction.channel?.id.slice(-4) || "0000"}`;
+  const avatarUrl = requester.displayAvatarURL({
+    extension: "png",
+    size: 256,
+  });
+  const createdAt =
+    "createdTimestamp" in (interaction.channel || {})
+      ? Number(interaction.channel?.createdTimestamp)
+      : Date.now();
+
+  return new EmbedBuilder()
+    .setColor(definition.color)
+    .setAuthor({
+      name: config.brandName,
+      ...(config.brandIconUrl ? { iconURL: config.brandIconUrl } : {}),
+    })
+    .setTitle("Your ticket has been closed")
+    .setDescription(
+      "Your transcript is attached below.\n\nWhen you have a moment, rate the support you received from **1 to 5 stars**.",
+    )
+    .addFields(
+      { name: "Reference", value: `\`${reference}\``, inline: false },
+      { name: "Department", value: definition.label, inline: true },
+      { name: "Request", value: `${definition.label} support`, inline: true },
+      { name: "Handled By", value: `<@${interaction.user.id}>`, inline: true },
+      { name: "Closed By", value: interaction.user.tag, inline: true },
+      {
+        name: "Duration",
+        value: formatDuration(Date.now() - createdAt),
+        inline: true,
+      },
+    )
+    .setThumbnail(config.brandIconUrl || avatarUrl)
+    .setFooter({
+      text: `${config.brandName} • Thanks for your time`,
+      ...(config.brandIconUrl ? { iconURL: config.brandIconUrl } : {}),
+    })
+    .setTimestamp();
+}
+
+function buildRatingComponents(ownerId: string) {
+  const ratingRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    [1, 2, 3, 4, 5].map((score) =>
+      new ButtonBuilder()
+        .setCustomId(`ticket_rating:${ownerId}:${score}`)
+        .setLabel(`${score} ★`)
+        .setStyle(ButtonStyle.Secondary),
+    ),
+  );
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [ratingRow];
+  const config = getConfig();
+  if (config.brandUrl) {
+    rows.push(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel(`Visit ${config.brandName}`)
+          .setStyle(ButtonStyle.Link)
+          .setURL(config.brandUrl),
+      ),
+    );
+  }
+  return rows;
+}
+
+export async function handleTicketRating(interaction: ButtonInteraction) {
+  const [, ownerId, score] = interaction.customId.split(":");
+  if (interaction.user.id !== ownerId) {
+    await interaction.reply({
+      content: "Only the ticket requester can rate this support.",
+    });
+    return;
+  }
+
+  await interaction.update({ components: [] });
+  await interaction.followUp({
+    content: `Thank you for rating your support **${score}/5 stars**.`,
+  });
+}
+
 export async function handleTicketClose(interaction: ButtonInteraction) {
   if (!isStaff(interaction)) {
     await interaction.reply({
@@ -463,8 +588,9 @@ export async function handleTicketClose(interaction: ButtonInteraction) {
   try {
     const user = await interaction.client.users.fetch(ticket.ownerId);
     await user.send({
-      content: `Your ${ticket.category ? ticket.category : ""} ticket in **${interaction.guild?.name || "the server"}** has been closed. Here is your transcript.`,
+      embeds: [buildTranscriptEmbed(interaction, user, ticket)],
       files: [attachment],
+      components: buildRatingComponents(ticket.ownerId),
     });
     dmDelivered = true;
   } catch {
