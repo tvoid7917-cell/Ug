@@ -189,7 +189,7 @@ export const supportDepartments = [
 ] as const;
 
 export const getConfig = () => ({
-  brandName: process.env.BRAND_NAME?.trim() || "Aura Market",
+  brandName: process.env.BRAND_NAME?.trim() || "United Knights",
   brandIconUrl: process.env.BRAND_ICON_URL?.trim() || undefined,
   ticketCategoryId: process.env.TICKET_CATEGORY_ID?.trim() || undefined,
   staffRoleId: process.env.STAFF_ROLE_ID?.trim() || undefined,

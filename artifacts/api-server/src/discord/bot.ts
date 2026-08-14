@@ -79,7 +79,7 @@ export async function startDiscordBot() {
     );
     await registerCommands();
     client.user.setPresence({
-      activities: [{ name: "your support tickets", type: 3 }],
+      activities: [{ name: "Watching United Knights", type: 3 }],
       status: "online",
     });
   });
