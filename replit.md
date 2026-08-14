@@ -1,6 +1,6 @@
-# [Project name]
+# Discord Support Bot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A Railway-ready Discord support bot with staff messaging and professional category-based tickets.
 
 ## Run & Operate
 
@@ -9,7 +9,8 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required secret: `DISCORD_TOKEN`
+- Optional env: `DISCORD_GUILD_ID`, `STAFF_ROLE_ID`, `TICKET_CATEGORY_ID`, `TRANSCRIPT_CHANNEL_ID`
 
 ## Stack
 
@@ -22,15 +23,23 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/discord/config.ts` — ticket categories, form fields, and deployment configuration
+- `artifacts/api-server/src/discord/commands.ts` — slash command definitions and handlers
+- `artifacts/api-server/src/discord/tickets.ts` — panels, modals, ticket channels, closing, and transcripts
+- `artifacts/api-server/src/discord/bot.ts` — Discord client startup and interaction routing
+- `.env.example` — safe configuration reference
+- `railway.toml` — Railway build, start, and restart configuration
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Discord interactions are handled with Discord.js v14 slash commands, select menus, buttons, and modals.
+- Ticket ownership is encoded in the private channel topic, so no separate database is needed for the first deployment.
+- Transcript delivery is attempted by DM and can also be archived in a configured staff channel.
+- Server-specific IDs are environment variables so the bot can be deployed to GitHub/Railway without source changes.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Staff can send controlled announcements to any server channel and launch a branded ticket panel. Members choose Buy, Support, Replace, or Partnership, complete a matching form, receive a private channel, and get a transcript by DM after closure.
 
 ## User preferences
 
@@ -38,7 +47,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- `DISCORD_GUILD_ID` makes slash commands appear immediately; global commands can take up to an hour to propagate.
+- The bot needs Manage Channels and the configured staff role/category IDs must belong to the same Discord server.
+- Never commit `DISCORD_TOKEN`; use Replit Secrets locally and Railway Variables marked as secret in deployment.
 
 ## Pointers
 
