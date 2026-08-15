@@ -37,6 +37,7 @@ Copy `.env.example` to your deployment settings.
 `DISCORD_GUILD_ID` is strongly recommended for development and first setup. With it set, slash commands update immediately in that server. Without it, commands are registered globally and Discord may take up to an hour to show them.
 
 Set `STAFF_ROLE_ID` to the role that should see tickets. Set `TICKET_CATEGORY_ID` to the Discord category where ticket channels should be created. Set `TRANSCRIPT_CHANNEL_ID` if you also want a staff archive of transcripts.
+`BRAND_BANNER_URL` controls the banner shown at the bottom of the ticket panel. The included default can be replaced with a permanent image URL if the Discord CDN link expires.
 
 ## Running
 

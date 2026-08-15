@@ -42,21 +42,40 @@ const parseTicketTopic = (topic: string | null) => {
 
 export function buildTicketPanel() {
   const config = getConfig();
+  const panelDescription = [
+    `**Welcome to ${config.brandName} Support**`,
+    `Need help? Choose the department that best matches your request. Please select the correct category so the team can help you faster.`,
+    [
+      "**📌 Make sure you follow these steps**",
+      "• State your issue immediately instead of only saying hello.",
+      "• Read the **Terms of Service** before creating a ticket.",
+      "• Do not create unnecessary or joke tickets.",
+      "• Replacement requests require a valid invoice ID or purchase reference.",
+      "• Be respectful and patient while waiting for a response.",
+    ].join("\n"),
+    [
+      "**🎟️ Ticket Options**",
+      `🛒 **Buy** → Open this if you want to purchase a product or request a custom order.`,
+      "🛠️ **Support** → For payment problems, order issues, access problems, rewards, or general assistance.",
+      "⚠️ **Replace** → Open this if a delivered product is invalid, stops working, or needs replacement.",
+      `🤝 **Partnership** → Open this if you would like to partner with ${config.brandName}.`,
+    ].join("\n\n"),
+    [
+      "**⚠️ Please choose the correct ticket category**",
+      "Opening the wrong category may result in the ticket being closed. Repeated misuse of the ticket system may restrict your access.",
+    ].join("\n"),
+    `**${config.brandName} • Fast Support • Secure Service**`,
+  ].join("\n\n");
+
   const embed = new EmbedBuilder()
     .setColor(0x5865f2)
     .setTitle(`${config.brandName} • Support Center`)
-    .setDescription(
-      "Need help? Choose the department that best matches your request. Please select the correct category so the team can help you faster.",
-    )
-    .addFields({
-      name: "Before opening a ticket",
-      value:
-        "Please do not share passwords, tokens, or other sensitive information. Opening a ticket in the wrong category may delay support.",
-    })
-    .setFooter({ text: "Fast support • Secure service" })
+    .setDescription(panelDescription)
+    .setFooter({ text: `${config.brandName} • Secure Support Center` })
     .setTimestamp();
 
   if (config.brandIconUrl) embed.setThumbnail(config.brandIconUrl);
+  if (config.brandBannerUrl) embed.setImage(config.brandBannerUrl);
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId("ticket_category")

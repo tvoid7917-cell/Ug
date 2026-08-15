@@ -16,6 +16,9 @@ export type TicketCategoryDefinition = {
   fields: TicketFormField[];
 };
 
+const DEFAULT_BRAND_BANNER_URL =
+  "https://cdn.discordapp.com/attachments/1537505873230958645/1537846582794264706/IMG_4302.jpg?ex=6a8086bd&is=6a7f353d&hm=865e2f9feb38bc643eabe1abd314aacf3616556c24ea7bcf3a623db3b5a281cb&";
+
 export const ticketCategories: Record<
   TicketCategory,
   TicketCategoryDefinition
@@ -192,6 +195,8 @@ export const getConfig = () => ({
   brandName: process.env.BRAND_NAME?.trim() || "United Knights",
   brandIconUrl: process.env.BRAND_ICON_URL?.trim() || undefined,
   brandUrl: process.env.BRAND_URL?.trim() || undefined,
+  brandBannerUrl:
+    process.env.BRAND_BANNER_URL?.trim() || DEFAULT_BRAND_BANNER_URL,
   ticketCategoryId: process.env.TICKET_CATEGORY_ID?.trim() || undefined,
   staffRoleId: process.env.STAFF_ROLE_ID?.trim() || undefined,
   transcriptChannelId: process.env.TRANSCRIPT_CHANNEL_ID?.trim() || undefined,
