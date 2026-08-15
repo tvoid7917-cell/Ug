@@ -243,13 +243,11 @@ function buildTicketControls() {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("ticket_claim")
-      .setLabel("Claim")
-      .setEmoji("🙋")
+      .setLabel("Claim Ticket")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId("ticket_close")
       .setLabel("Close ticket")
-      .setEmoji("🔒")
       .setStyle(ButtonStyle.Danger),
   );
 }
@@ -403,7 +401,7 @@ export async function handleTicketClaim(interaction: ButtonInteraction) {
   }
 
   await interaction.reply({
-    content: `🙋 This ticket has been claimed by <@${interaction.user.id}>.`,
+    content: `**Ticket Assigned**\n\nThis request is now being handled by <@${interaction.user.id}>.`,
   });
 }
 
@@ -615,12 +613,14 @@ export async function handleTicketClose(interaction: ButtonInteraction) {
 
   await interaction.editReply({
     content: dmDelivered
-      ? "Ticket closed. The transcript was sent to the requester by DM."
-      : "Ticket closed. I could not DM the requester, so the transcript was saved to the configured transcript channel if available.",
+      ? "**Support Request Closed**\n\nThe transcript has been delivered to the requester by direct message. Thank you for your patience."
+      : "**Support Request Closed**\n\nThe requester’s direct messages could not be reached. The transcript was saved to the configured archive channel when available.",
   });
 
   await interaction.channel
-    .send("This ticket will be deleted shortly.")
+    .send(
+      "**Ticket Archiving**\n\nThis channel will be removed shortly. Please keep the transcript message for your records.",
+    )
     .catch(() => undefined);
   setTimeout(() => {
     void interaction.channel?.delete("Ticket closed");
